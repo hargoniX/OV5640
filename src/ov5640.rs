@@ -21,15 +21,15 @@ pub struct Ov5640<I2C, PWDN, RST> {
 }
 
 pub enum Resolution {
-	Qcif176_144,
-	Qvga320_240,
-	Vga640_480,
-	Ntsc720_480,
-	Pal720_576,
-	Xga1024_768,
-	P720_1280_720,
-	P1080_1920_1080,
-	Qsxga2592_1944
+    Qcifz176_144,
+    Qvga320_240,
+    Vga640_480,
+    Ntsc720_480,
+    Pal720_576,
+    Xga1024_768,
+    P720_1280_720,
+    P1080_1920_1080,
+    Qsxga2592_1944,
 }
 
 pub enum Format {
@@ -58,7 +58,7 @@ pub enum Yuv422Order {
     Yuyv,
     Yvyu,
     Uyvy,
-    Vyuy
+    Vyuy,
 }
 
 impl Format {
@@ -66,7 +66,7 @@ impl Format {
         match self {
             Format::Raw(order) => order.to_hex(),
             Format::Rgb565(order) => 0x60 | order.to_hex(),
-            Format::Yuv422(order) => 0x30 | order.to_hex()
+            Format::Yuv422(order) => 0x30 | order.to_hex(),
         }
     }
 
@@ -74,7 +74,7 @@ impl Format {
         match self {
             Format::Raw(_) => OV5640_FMT_MUX_RAW_DPC,
             Format::Rgb565(_) => OV5640_FMT_MUX_RGB,
-            Format::Yuv422(_) => OV5640_FMT_MUX_YUV422
+            Format::Yuv422(_) => OV5640_FMT_MUX_YUV422,
         }
     }
 }
@@ -124,24 +124,30 @@ where
     where
         I2C: Read + Write,
     {
-        Ov5640 {
-            i2c,
-            pwdn,
-            rst,
-        }
+        Ov5640 { i2c, pwdn, rst }
     }
 
-    pub fn init(
-        &mut self,
-        format: Format,
-        resolution: Resolution,
-    ) -> Result<(), SccbError<E>> {
+    pub fn init(&mut self, format: Format, resolution: Resolution) -> Result<(), SccbError<E>> {
         let slave_id = self.read_reg(OV5640_REG_ID)?;
         if slave_id != OV5640_ID {
             return Err(SccbError::InvalidId(slave_id));
         }
 
         for register in OV5640_INITIAL_SETTINGS.iter() {
+            self.write_reg(register.0, register.1)?;
+        }
+
+        for register in match resolution {
+            Resolution::Qcifz176_144 => QCIF_176_144.iter(),
+            Resolution::Qvga320_240 => QVGA_320_240.iter(),
+            Resolution::Vga640_480 => VGA_640_480.iter(),
+            Resolution::Ntsc720_480 => NTSC_720_480.iter(),
+            Resolution::Pal720_576 => PAL_720_576.iter(),
+            Resolution::Xga1024_768 => XGA_1024_768.iter(),
+            Resolution::P720_1280_720 => P720_1280_720.iter(),
+            Resolution::P1080_1920_1080 => P1080_1920_1080.iter(),
+            Resolution::Qsxga2592_1944 => QSXGA_2592_1944.iter(),
+        } {
             self.write_reg(register.0, register.1)?;
         }
 
